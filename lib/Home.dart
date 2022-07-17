@@ -16,27 +16,48 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
-  List tarefas = [];
-  List<bool> tarefasResult = [false, false, false];
+  List<dynamic> tarefas = [];
+
+
+  Future<File> _getFile() async{
+    final diretorio = await getApplicationDocumentsDirectory();
+    return File("${diretorio.path}/dados.json");
+  }
+
+  _lerArquivo() async {
+    try{
+      final arquivo = await _getFile();
+      return arquivo.readAsString();
+    }catch(e){
+      return null;
+    }
+  }
 
   _salvarArquivo() async{
-    final diretorio = await getApplicationDocumentsDirectory();
-    var arquivo = File("${diretorio.path}/dados.json");
-
     //determinar os itens da lista de tarefas
     Map<String,dynamic> tarefa = Map();
+    File arquivo = await _getFile() as File;
     tarefa["Titulo"] = "Ir ao mercado";
     tarefa["Status"] = false;
     tarefas.add(tarefa);
-
     //converter para json
-    String dados = jsonEncode(tarefas);
+    String dados = json.encode(tarefas);
     arquivo.writeAsString(dados);
   }
 
   @override
+  void initState() {
+    super.initState();
+    _lerArquivo().then((dados){
+      setState((){
+        tarefas = json.decode(dados);
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    _salvarArquivo();
+    print("itens: " + tarefas.toString());
     Color corPrincipal = Colors.purple;
     return Scaffold(
       appBar: AppBar(
@@ -44,24 +65,19 @@ class _HomeState extends State<Home> {
         title: Text("Lista de tarefas"),
       ),
       body: Container(
-        child: Column(
+          child: Column(
           children: [
             ListView.builder(
               scrollDirection: Axis.vertical,
               shrinkWrap: true,
               itemCount: tarefas.length,
               itemBuilder: (context,index){
-                  return Container(
-                    padding: EdgeInsets.all(16),
-                    child: Row(
+                return ListTile(
+                    title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Text(tarefas[index]), Checkbox(
-                          value: tarefasResult[index],
-                          onChanged: (bool? value){
-                            setState((){tarefasResult[index] = value!;});
-                          })],
+                      children: [Text(tarefas[index]["Titulo"]), Text("outro componente")],
                     ),
-                  );
+                );
               },
             )
           ],
@@ -88,6 +104,7 @@ class _HomeState extends State<Home> {
                     FlatButton(
                         onPressed: (){
                           //salvar
+                          setState((){_salvarArquivo();});
                           Navigator.pop(context);
                         },
                         child: Text("Salvar")
